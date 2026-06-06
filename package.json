@@ -1,6 +1,6 @@
 {
   "name": "@kevin0181/memoc",
-  "version": "1.4.13",
+  "version": "1.4.14",
   "description": "Give AI agents a memory. Scaffolds session-to-session context for Claude Code, Codex, Cursor, and more.",
   "keywords": [
     "ai",

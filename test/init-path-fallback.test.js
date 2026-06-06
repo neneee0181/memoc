@@ -902,3 +902,47 @@ test('doctor reports oversized summaries and user-specific wrapper paths', () =>
     assert.match(output, /user-specific runtime path/);
   });
 });
+
+test('doctor reports missing project-local wrappers', () => {
+  withTempProject(dir => {
+    const env = {
+      ...process.env,
+      MEMOC_SKIP_PATH_REGISTER: '1',
+      MEMOC_USER_BIN_DIR: path.join(dir, 'fake-user-bin'),
+      MEMOC_RUNTIME_DIR: path.join(dir, 'fake-runtime'),
+    };
+    execFileSync(process.execPath, [cliPath, 'init'], { cwd: dir, encoding: 'utf8', env });
+    fs.rmSync(path.join(dir, '.memoc', 'bin'), { recursive: true, force: true });
+
+    const output = execFileSync(process.execPath, [cliPath, 'doctor'], { cwd: dir, encoding: 'utf8', env });
+
+    assert.match(output, /Missing \.memoc[\\/]bin[\\/]memoc; run memoc upgrade/);
+    assert.match(output, /Missing \.memoc[\\/]bin[\\/]memoc\.cmd; run memoc upgrade/);
+    assert.match(output, /Missing \.memoc[\\/]bin[\\/]memoc\.ps1; run memoc upgrade/);
+  });
+});
+
+test('doctor reports non-executable sh wrapper and upgrade repairs it', () => {
+  withTempProject(dir => {
+    const env = {
+      ...process.env,
+      MEMOC_SKIP_PATH_REGISTER: '1',
+      MEMOC_USER_BIN_DIR: path.join(dir, 'fake-user-bin'),
+      MEMOC_RUNTIME_DIR: path.join(dir, 'fake-runtime'),
+    };
+    execFileSync(process.execPath, [cliPath, 'init'], { cwd: dir, encoding: 'utf8', env });
+    const wrapperPath = path.join(dir, '.memoc', 'bin', 'memoc');
+
+    if (process.platform !== 'win32') {
+      fs.chmodSync(wrapperPath, 0o644);
+      const brokenOutput = execFileSync(process.execPath, [cliPath, 'doctor'], { cwd: dir, encoding: 'utf8', env });
+      assert.match(brokenOutput, /\.memoc[\\/]bin[\\/]memoc is not executable; run memoc upgrade/);
+    }
+
+    execFileSync(process.execPath, [cliPath, 'upgrade'], { cwd: dir, encoding: 'utf8', env });
+    if (process.platform !== 'win32') assert.ok(fs.statSync(wrapperPath).mode & 0o111);
+
+    const output = execFileSync(process.execPath, [cliPath, 'doctor'], { cwd: dir, encoding: 'utf8', env });
+    assert.doesNotMatch(output, /Missing \.memoc[\\/]bin[\\/]memoc|not executable/);
+  });
+});

@@ -197,6 +197,11 @@ function chmodExecutable(filePath) {
   try { fs.chmodSync(filePath, 0o755); } catch {}
 }
 
+function isExecutable(filePath) {
+  try { fs.accessSync(filePath, fs.constants.X_OK); return true; }
+  catch { return false; }
+}
+
 function ensure(filePath, content) {
   if (fs.existsSync(filePath)) return false;
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -3606,15 +3611,24 @@ function runDoctor(dir) {
   if (!summary) issues.push('Missing .memoc/session-summary.md');
   else if (Buffer.byteLength(summary, 'utf8') > 800) warnings.push('session-summary.md exceeds 800B; run memoc trim-summary');
 
-  for (const fp of [
+  const wrapperFiles = [
     path.join(dir, '.memoc', 'bin', 'memoc'),
     path.join(dir, '.memoc', 'bin', 'memoc.cmd'),
     path.join(dir, '.memoc', 'bin', 'memoc.ps1'),
-  ]) {
+  ];
+  for (const fp of wrapperFiles) {
+    if (!fs.existsSync(fp)) {
+      issues.push(`Missing ${normRel(dir, fp)}; run memoc upgrade`);
+      continue;
+    }
     const src = safeRead(fp);
     if (src && (/C:\\Users\\|\/Users\/[^/]+\/\.local\/share\/memoc\/runtime/.test(src))) {
       issues.push(`${normRel(dir, fp)} contains a user-specific runtime path; run memoc upgrade`);
     }
+  }
+  const shWrapper = path.join(dir, '.memoc', 'bin', 'memoc');
+  if (currentPlatform() !== 'win32' && fs.existsSync(shWrapper) && !isExecutable(shWrapper)) {
+    issues.push(`${normRel(dir, shWrapper)} is not executable; run memoc upgrade`);
   }
 
   for (const fp of collectMemocMarkdownFiles(dir)) {
