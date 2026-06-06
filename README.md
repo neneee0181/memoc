@@ -57,7 +57,7 @@ Agent install checklist:
 2. Run `npx @kevin0181/memoc@latest init` from the target project root.
 3. Do not clone this GitHub repository into the target project. Do not download the repo ZIP as an installer.
 4. `.claude/settings.json` is intentionally generated for the Claude Code Stop hook; keep or commit it only if the project wants that hook.
-5. After init, do not depend on global PATH. Use the project-local wrapper when needed:
+5. After init, do not depend on global PATH. Use the project-local wrapper when needed (project-local `.memoc/runtime` is preferred when present, useful for sandboxed agents):
    - Windows: `.\.memoc\bin\memoc.cmd <command>`
    - macOS/Linux: `.memoc/bin/memoc <command>`
 
@@ -192,7 +192,7 @@ Every entry file (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, etc.) gets the same 
 ## Session Start
 - [ ] Read `.memoc/session-summary.md`
 - [ ] `.pending` exists? → review changed files → update memory if needed → delete it
-- [ ] If `memoc` is not found, use the project-local wrapper.
+- [ ] If `memoc` is not found, use the project-local wrapper (project-local `.memoc/runtime` is preferred when present).
 
 ## Before Opening More Files
 - [ ] Run `memoc search "<query>"` first
